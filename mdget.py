@@ -147,22 +147,34 @@ def getvalue(strSearch, data):
 	return value
 
 
+#Here is the start of the main program.  Some of this will eventually
+#need to be put into functions
 
+#Setup basic parser
+#This should all possibly be included in a function
 parser = argparse.ArgumentParser(description='Code to get dataless from mdget')
+
 parser.add_argument('-s','--station', type = str, action = "store", dest="station", \
 default = "*", help="Name of the station of interest: SSSSS", required = False)
+
 parser.add_argument('-l','--location', type = str, action = "store", dest="location", \
 default = "*", help="Name of the location of interest: LL", required = False)
+
 parser.add_argument('-n','--network', action = "store",dest="network", \
 default = "*", help="Name of the network of interest: NN", type = str, required = True)
+
 parser.add_argument('-c','--channel', action = "store",dest="channel", \
 default ="*", help="Name of the channel of interest: CCC", type = str, required = False)
+
 parser.add_argument('-d','--debug',action = "store_true",dest="debug", \
 default = False, help="Run in debug mode")
+
 parser.add_argument('-t','--time',type = str, action = "store", dest= "time", \
 default = "", required = False, help="Time of Epoch: YYYY DDD")
+
 parser.add_argument('-o','--output',type = str,action = "store", dest = "output", \
 default = "description", help="Name of parsed value of interest", required = False)
+
 parserval = parser.parse_args()
 
 if parserval.debug:
@@ -171,6 +183,7 @@ if parserval.debug:
 else:
 	debug = False
 
+#If we have a time we want to pull it out and use it for the epoch
 if parserval.time:
 	try:
 		stime = UTCDateTime(parseresult.date.split()[0] + "-" + \
@@ -182,7 +195,8 @@ if parserval.time:
 		print 'Here is the epoch time of interest:' + stime 	
 
 #We need a function to parse the imput string for various epochs
-importstring = getString(parserval.network,parserval.station,parserval.location,parserval.channel)
+importstring = getString(parserval.network,parserval.station, \
+	parserval.location,parserval.channel)
 
 
 #Open the socket and connect
@@ -235,9 +249,6 @@ for curepoch in data:
 	print parseddata['network'] + ' ' + parseddata['station'] + ' ' + \
 		parseddata['location'] + ' ' + parseddata['channel'] + ' ' + \
 		parseddata[parserval.output]
-
-
-
 
 
 #Need to include the main part of the program and make things pretty
