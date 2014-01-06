@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import socket
+import argparse
 from obspy.core import UTCDateTime
+from time import sleep
+
 
 #######################################################################
 #Code for Mdget in python
@@ -17,19 +20,10 @@ from obspy.core import UTCDateTime
 #######################################################################
 
 #Variables that will not change often
-debug = True
 host = "137.227.224.97"
 port = 2052
 maxslept = 60 / 0.05
 maxblock = 2*10240
-
-#Here are the variables needed to be parsed
-station = "BBSR"
-location ="*"
-channel ="LHZ"
-network ="IU"
-
-stime = UTCDateTime("2012-01-01T00:00:00.0")
 
 def getString(net,sta,loc,chan):
 #This function formats the string to be used in mdget
@@ -81,24 +75,24 @@ def parseresp(data):
 	if debugParseresp:
 		print data[0]
 #Get the network as well as the other parameters that are easy
-	datalessobject['Network'] = getvalue("* NETWORK",data)
-	datalessobject['Station'] = getvalue("* STATION",data)
-	datalessobject['Channel'] = getvalue("* COMPONENT",data)
-	datalessobject['Location'] = getvalue("* LOCATION",data)
-	datalessobject['Start Date'] = getvalue("* EFFECTIVE",data)
-	datalessobject['End Date'] = getvalue("* ENDDATE",data)
-	datalessobject['Input Unit'] = getvalue("* INPUT UNIT",data)
-	datalessobject['Output Unit'] = getvalue("* OUTPUT UNIT",data)
-	datalessobject['Description'] = getvalue("* DESCRIPTION",data)
-	datalessobject['Sampling Rate'] = getvalue("* RATE (HZ)",data)
-	datalessobject['Latitude'] = getvalue("* LAT-SEED",data)
-	datalessobject['Longitude'] = getvalue("* LONG-SEED",data)
-	datalessobject['Elevation'] = getvalue("* ELEV-SEED",data)
-	datalessobject['Depth'] = getvalue("* DEPTH",data)
-	datalessobject['Dip'] = getvalue("* DIP",data)
-	datalessobject['Azimuth'] = getvalue("* AZIMUTH",data)	
-	datalessobject['Instrument Type'] = getvalue("* INSTRMNTTYPE",data)
-	datalessobject['Sensitivity'] = getvalue("* SENS-SEED",data)
+	datalessobject['network'] = getvalue("* NETWORK",data)
+	datalessobject['station'] = getvalue("* STATION",data)
+	datalessobject['channel'] = getvalue("* COMPONENT",data)
+	datalessobject['location'] = getvalue("* LOCATION",data)
+	datalessobject['start date'] = getvalue("* EFFECTIVE",data)
+	datalessobject['end date'] = getvalue("* ENDDATE",data)
+	datalessobject['input unit'] = getvalue("* INPUT UNIT",data)
+	datalessobject['output unit'] = getvalue("* OUTPUT UNIT",data)
+	datalessobject['description'] = getvalue("* DESCRIPTION",data)
+	datalessobject['sampling rate'] = getvalue("* RATE (HZ)",data)
+	datalessobject['latitude'] = getvalue("* LAT-SEED",data)
+	datalessobject['longitude'] = getvalue("* LONG-SEED",data)
+	datalessobject['elevation'] = getvalue("* ELEV-SEED",data)
+	datalessobject['depth'] = getvalue("* DEPTH",data)
+	datalessobject['dip'] = getvalue("* DIP",data)
+	datalessobject['azimuth'] = getvalue("* AZIMUTH",data)	
+	datalessobject['instrument type'] = getvalue("* INSTRMNTTYPE",data)
+	datalessobject['sensitivity'] = getvalue("* SENS-SEED",data)
 	
 #Now we need to get the poles and zeros
 	nzeros = int(getvalue("ZEROS",data))
@@ -127,7 +121,7 @@ def parseresp(data):
 		zeros.append(curzero)
 		if debugParseresp:
 			print 'Here is another zero:' + str(curzero)
-	datalessobject['Zeros'] = zeros
+	datalessobject['zeros'] = zeros
 #Lets start dealing with the poles
 	for pstart in range(0,npoles):
 		curpole = ' '.join(data[polesindex + pstart].split())
@@ -139,7 +133,7 @@ def parseresp(data):
 		poles.append(curpole)
 		if debugParseresp:
 			print 'Here is another pole:' + str(curpole)
-	datalessobject['Poles'] = poles	
+	datalessobject['poles'] = poles	
 
 	return  datalessobject
 
@@ -147,16 +141,49 @@ def getvalue(strSearch, data):
 #This is a helper function to not call the search function a bunch
 #Currently this function only deals with 1 parameter so it needs to be
 #modified to deal with poles and zeros
+	value = []
 	value = [s for s in data if strSearch in s]
 	value = (value[0].replace(strSearch,'')).strip()
 	return value
 
 
 
+parser = argparse.ArgumentParser(description='Code to get dataless from mdget')
+parser.add_argument('-s','--station', type = str, action = "store", dest="station", \
+default = "*", help="Name of the station of interest: SSSSS", required = False)
+parser.add_argument('-l','--location', type = str, action = "store", dest="location", \
+default = "*", help="Name of the location of interest: LL", required = False)
+parser.add_argument('-n','--network', action = "store",dest="network", \
+default = "*", help="Name of the network of interest: NN", type = str, required = True)
+parser.add_argument('-c','--channel', action = "store",dest="channel", \
+default ="*", help="Name of the channel of interest: CCC", type = str, required = False)
+parser.add_argument('-d','--debug',action = "store_true",dest="debug", \
+default = False, help="Run in debug mode")
+parser.add_argument('-t','--time',type = str, action = "store", dest= "time", \
+default = "", required = False, help="Time of Epoch: YYYY DDD")
+parser.add_argument('-o','--output',type = str,action = "store", dest = "output", \
+default = "description", help="Name of parsed value of interest", required = False)
+parserval = parser.parse_args()
 
+if parserval.debug:
+	print 'Running in debug mode'
+	debug = True
+else:
+	debug = False
+
+if parserval.time:
+	try:
+		stime = UTCDateTime(parseresult.date.split()[0] + "-" + \
+			parseresult.date.split()[1] + "T00:00:00.0") 
+	except:
+		print 'Problem reading epoch'
+		sys.exit(0)
+	if debug:
+		print 'Here is the epoch time of interest:' + stime 	
 
 #We need a function to parse the imput string for various epochs
-importstring = getString(network,station,location,channel)
+importstring = getString(parserval.network,parserval.station,parserval.location,parserval.channel)
+
 
 #Open the socket and connect
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -165,8 +192,9 @@ s.connect((host, port))
 #Set blocking we will want a different timeout approach
 s.setblocking(maxslept)
 
+if parserval.time:
+	importstring += ' -b ' + modifyDateTime(stime)
 
-importstring += ' -b ' + modifyDateTime(stime)
 importstring +=  " -c r\n"
 if debug:
 	print importstring
@@ -175,30 +203,38 @@ s.sendall(importstring)
 
 #Now lets get the data
 getmoredata = True
-datagood = []
-while getmoredata:
-#Pulling one epoch of data and splitting it
-	data = (s.recv(maxblock)).split("\n")
-	if debug:
-		print data
-		print 'Okay moving on'
 
-#Check if we are at the end of the return or not
-	if data[-2] == '* <EOR>':
+data=''
+while getmoredata:
+#Pulling the request data and adding it into one big string
+	data += s.recv(maxblock)
+	if "* <EOR>" in data:
 		if debug:
 			print 'Found the end of the output'
 		getmoredata = False
-#Need to parse the response and add it to the datagood variable
-	if 'no channels found' in data[0]:
-		print 'No channels found\n'
 	else:
-		datagood.append(parseresp(data))
-
+		if debug:
+			print 'Okay getting more data'
+	if 'no channels found' in data:
+		print 'No channels found\n'
+	sleep(0.05)
 s.close()
 
-for datablock in datagood:
-	print 'Parsed data for: ' + datablock['Station'] + ' ' + \
-		datablock['Location'] + ' ' + datablock['Channel']
+#Splitting the data by EOE into a list
+data = data.split('* <EOE>')
+data.pop()
+for curepoch in data:
+	if debug:
+		print 'Here is a new epoch'
+		print curepoch
+
+#Here we split the current epoch by line and pull out the important information
+	parseddata = parseresp(curepoch.split('\n'))
+	if debug:
+		print 'Here is the station we are at: ' + parseddata['station']
+	print parseddata['network'] + ' ' + parseddata['station'] + ' ' + \
+		parseddata['location'] + ' ' + parseddata['channel'] + ' ' + \
+		parseddata[parserval.output]
 
 
 
