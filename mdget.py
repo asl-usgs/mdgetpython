@@ -3,6 +3,7 @@ import socket
 import argparse
 from obspy.core import UTCDateTime
 from time import sleep
+import sys
 
 
 #######################################################################
@@ -186,8 +187,8 @@ else:
 #If we have a time we want to pull it out and use it for the epoch
 if parserval.time:
 	try:
-		stime = UTCDateTime(parseresult.date.split()[0] + "-" + \
-			parseresult.date.split()[1] + "T00:00:00.0") 
+		stime = UTCDateTime(parserval.time.split()[0] + "-" + \
+			parserval.time.split()[1] + "T00:00:00.0") 
 	except:
 		print 'Problem reading epoch'
 		sys.exit(0)
