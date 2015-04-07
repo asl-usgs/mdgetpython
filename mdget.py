@@ -21,6 +21,7 @@ import sys
 #######################################################################
 
 #Variables that will not change often
+debug = False
 host = "137.227.224.97"
 port = 2052
 maxslept = 60 / 0.05
@@ -147,109 +148,116 @@ def getvalue(strSearch, data):
 	value = (value[0].replace(strSearch,'')).strip()
 	return value
 
+def process(network, station, location, channel, stime, output):
+
+    importstring = getString(network, station, location, channel)
+#Open the socket and connect
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
+
+#Set blocking we will want a different timeout approach
+    s.setblocking(maxslept)
+
+    if stime:
+        importstring += ' -b ' + modifyDateTime(stime)
+
+    importstring +=  " -c r\n"
+    if debug:
+        print importstring
+
+    s.sendall(importstring)
+
+#Now lets get the data
+    getmoredata = True
+
+    data=''
+    while getmoredata:
+#Pulling the request data and adding it into one big string
+        data += s.recv(maxblock)
+        if "* <EOR>" in data:
+            if debug:
+                print 'Found the end of the output'
+            getmoredata = False
+        else:
+            if debug:
+                print 'Okay getting more data'
+        if 'no channels found' in data:
+            print 'No channels found\n'
+        sleep(0.05)
+    s.close()
+
+#Splitting the data by EOE into a list
+    data = data.split('* <EOE>')
+    data.pop()
+    for curepoch in data:
+        if debug:
+            print 'Here is a new epoch'
+            print curepoch
+
+#Here we split the current epoch by line and pull out the important information
+        parseddata = parseresp(curepoch.split('\n'))
+        if debug:
+            print 'Here is the station we are at: ' + parseddata['station']
+        print parseddata['network'] + ' ' + parseddata['station'] + ' ' + \
+            parseddata['location'] + ' ' + parseddata['channel'] + ' ' + \
+            parseddata[output]
+
 
 #Here is the start of the main program.  Some of this will eventually
 #need to be put into functions
 
+def main():
 #Setup basic parser
 #This should all possibly be included in a function
-parser = argparse.ArgumentParser(description='Code to get dataless from mdget')
+    parser = argparse.ArgumentParser(description='Code to get dataless from mdget')
 
-parser.add_argument('-s','--station', type = str, action = "store", dest="station", \
-default = "*", help="Name of the station of interest: SSSSS", required = False)
+    parser.add_argument('-s','--station', type = str, action = "store", dest="station", \
+    default = "*", help="Name of the station of interest: SSSSS", required = False)
 
-parser.add_argument('-l','--location', type = str, action = "store", dest="location", \
-default = "*", help="Name of the location of interest: LL", required = False)
+    parser.add_argument('-l','--location', type = str, action = "store", dest="location", \
+    default = "*", help="Name of the location of interest: LL", required = False)
 
-parser.add_argument('-n','--network', action = "store",dest="network", \
-default = "*", help="Name of the network of interest: NN", type = str, required = True)
+    parser.add_argument('-n','--network', action = "store",dest="network", \
+    default = "*", help="Name of the network of interest: NN", type = str, required = True)
 
-parser.add_argument('-c','--channel', action = "store",dest="channel", \
-default ="*", help="Name of the channel of interest: CCC", type = str, required = False)
+    parser.add_argument('-c','--channel', action = "store",dest="channel", \
+    default ="*", help="Name of the channel of interest: CCC", type = str, required = False)
 
-parser.add_argument('-d','--debug',action = "store_true",dest="debug", \
-default = False, help="Run in debug mode")
+    parser.add_argument('-d','--debug',action = "store_true",dest="debug", \
+    default = False, help="Run in debug mode")
 
-parser.add_argument('-t','--time',type = str, action = "store", dest= "time", \
-default = "", required = False, help="Time of Epoch: YYYY DDD")
+    parser.add_argument('-t','--time',type = str, action = "store", dest= "time", \
+    default = "", required = False, help="Time of Epoch: YYYY DDD")
 
-parser.add_argument('-o','--output',type = str,action = "store", dest = "output", \
-default = "description", help="Name of parsed value of interest", required = False)
+    parser.add_argument('-o','--output',type = str,action = "store", dest = "output", \
+    default = "description", help="Name of parsed value of interest", required = False)
 
-parserval = parser.parse_args()
+    parserval = parser.parse_args()
 
-if parserval.debug:
-	print 'Running in debug mode'
-	debug = True
-else:
-	debug = False
+    if parserval.debug:
+        print 'Running in debug mode'
+        debug = True
+    else:
+        debug = False
 
 #If we have a time we want to pull it out and use it for the epoch
-if parserval.time:
-	try:
-		stime = UTCDateTime(parserval.time.split()[0] + "-" + \
-			parserval.time.split()[1] + "T00:00:00.0") 
-	except:
-		print 'Problem reading epoch'
-		sys.exit(0)
-	if debug:
-		print 'Here is the epoch time of interest:' + stime 	
+    if parserval.time:
+        try:
+            stime = UTCDateTime(parserval.time.split()[0] + "-" + \
+                parserval.time.split()[1] + "T00:00:00.0") 
+        except:
+            print 'Problem reading epoch'
+            sys.exit(0)
+        if debug:
+            print 'Here is the epoch time of interest:' + stime
+    else:
+        stime = ""
 
 #We need a function to parse the imput string for various epochs
-importstring = getString(parserval.network,parserval.station, \
-	parserval.location,parserval.channel)
+    process(parserval.network,  parserval.station,  \
+            parserval.location, parserval.channel, \
+            stime, parserval.output)
 
+if __name__ == '__main__':
+    main()
 
-#Open the socket and connect
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((host, port))
-
-#Set blocking we will want a different timeout approach
-s.setblocking(maxslept)
-
-if parserval.time:
-	importstring += ' -b ' + modifyDateTime(stime)
-
-importstring +=  " -c r\n"
-if debug:
-	print importstring
-
-s.sendall(importstring)
-
-#Now lets get the data
-getmoredata = True
-
-data=''
-while getmoredata:
-#Pulling the request data and adding it into one big string
-	data += s.recv(maxblock)
-	if "* <EOR>" in data:
-		if debug:
-			print 'Found the end of the output'
-		getmoredata = False
-	else:
-		if debug:
-			print 'Okay getting more data'
-	if 'no channels found' in data:
-		print 'No channels found\n'
-	sleep(0.05)
-s.close()
-
-#Splitting the data by EOE into a list
-data = data.split('* <EOE>')
-data.pop()
-for curepoch in data:
-	if debug:
-		print 'Here is a new epoch'
-		print curepoch
-
-#Here we split the current epoch by line and pull out the important information
-	parseddata = parseresp(curepoch.split('\n'))
-	if debug:
-		print 'Here is the station we are at: ' + parseddata['station']
-	print parseddata['network'] + ' ' + parseddata['station'] + ' ' + \
-		parseddata['location'] + ' ' + parseddata['channel'] + ' ' + \
-		parseddata[parserval.output]
-
-
-#Need to include the main part of the program and make things pretty
