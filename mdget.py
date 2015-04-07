@@ -17,6 +17,8 @@ import sys
 #modifyDateTime()
 #parseresp()
 #getvalue()
+#process(network, station, location, channel, stime, output)
+#main()
 #
 #######################################################################
 
@@ -149,7 +151,7 @@ def getvalue(strSearch, data):
 	return value
 
 def process(network, station, location, channel, stime, output):
-
+#We need a function to parse the imput string for various epochs
     importstring = getString(network, station, location, channel)
 #Open the socket and connect
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -202,13 +204,8 @@ def process(network, station, location, channel, stime, output):
             parseddata['location'] + ' ' + parseddata['channel'] + ' ' + \
             parseddata[output]
 
-
-#Here is the start of the main program.  Some of this will eventually
-#need to be put into functions
-
 def main():
 #Setup basic parser
-#This should all possibly be included in a function
     parser = argparse.ArgumentParser(description='Code to get dataless from mdget')
 
     parser.add_argument('-s','--station', type = str, action = "store", dest="station", \
@@ -253,7 +250,6 @@ def main():
     else:
         stime = ""
 
-#We need a function to parse the imput string for various epochs
     process(parserval.network,  parserval.station,  \
             parserval.location, parserval.channel, \
             stime, parserval.output)
