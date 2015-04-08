@@ -191,6 +191,8 @@ def process(network, station, location, channel, stime, output):
 #Splitting the data by EOE into a list
     data = data.split('* <EOE>')
     data.pop()
+
+    returnString = ""
     for curepoch in data:
         if debug:
             print 'Here is a new epoch'
@@ -200,9 +202,11 @@ def process(network, station, location, channel, stime, output):
         parseddata = parseresp(curepoch.split('\n'))
         if debug:
             print 'Here is the station we are at: ' + parseddata['station']
-        print parseddata['network'] + ' ' + parseddata['station'] + ' ' + \
+        returnString += parseddata['network'] + ' ' + parseddata['station'] + ' ' + \
             parseddata['location'] + ' ' + parseddata['channel'] + ' ' + \
-            parseddata[output]
+            parseddata[output] + "\n"
+
+    return returnString
 
 def main():
 #Setup basic parser
@@ -250,7 +254,7 @@ def main():
     else:
         stime = ""
 
-    process(parserval.network,  parserval.station,  \
+    print process(parserval.network,  parserval.station,  \
             parserval.location, parserval.channel, \
             stime, parserval.output)
 
