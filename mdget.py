@@ -172,6 +172,7 @@ def process(network, station, location, channel, stime, output):
 #Now lets get the data
     getmoredata = True
 
+    returnString = ""
     data=''
     while getmoredata:
 #Pulling the request data and adding it into one big string
@@ -184,7 +185,7 @@ def process(network, station, location, channel, stime, output):
             if debug:
                 print 'Okay getting more data'
         if 'no channels found' in data:
-            print 'No channels found\n'
+             returnString += 'No channels found\n'
         sleep(0.05)
     s.close()
 
@@ -192,7 +193,6 @@ def process(network, station, location, channel, stime, output):
     data = data.split('* <EOE>')
     data.pop()
 
-    returnString = ""
     for curepoch in data:
         if debug:
             print 'Here is a new epoch'
